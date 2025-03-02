@@ -1,0 +1,26 @@
+# Q3 -yes, signal run in same DB as caller 
+
+from django.db import transaction
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from django.contrib.auth.models import User
+import logging
+
+logging.basicConfig(level=logging.INFO)
+
+@receiver(post_save, sender=User)
+def my_signal_handler(sender, instance, **kwargs):
+    logging.info("Signal received and executed")
+
+try:
+    with transaction.atomic():  
+        user = User.objects.create(username="test_user")
+        logging.info("User created in database")
+        
+        raise Exception("creating an error")  
+
+except Exception as e:
+    logging.info(f"Transaction failed: {e}")
+
+user_exists = User.objects.filter(username="test_user").exists()
+logging.info(f"Does the user exist after rollback - {user_exists}")
